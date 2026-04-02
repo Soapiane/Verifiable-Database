@@ -1,0 +1,176 @@
+{% extends "lots/base.html" %}
+{% load static %}
+{% block title %}Archives — Promotions & Arbres Merkle{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+
+  <!-- Header -->
+  <div class="flex items-start justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-800">Archives des promotions</h1>
+      <p class="text-slate-500 mt-1 text-sm max-w-xl">
+        Chaque promotion dispose de son propre arbre Merkle indépendant.
+        La racine est publiée au Journal Officiel en fin d'année universitaire
+        et reste vérifiable à vie.
+      </p>
+    </div>
+    <a href="{% url 'export_roots' %}"
+       class="shrink-0 flex items-center gap-2 bg-white border border-slate-300 hover:border-rep-500 hover:text-rep-700 text-slate-600 text-sm px-4 py-2 rounded-lg font-medium shadow-sm transition-colors">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+      </svg>
+      Télécharger toutes les racines (JSON)
+    </a>
+  </div>
+
+  {% if not years_data %}
+  <div class="bg-slate-100 border-2 border-dashed border-slate-300 rounded-2xl p-10 text-center text-slate-400">
+    <p class="font-medium">Aucune promotion enregistrée</p>
+    <p class="text-sm mt-1">Les archives apparaîtront ici après la première soumission.</p>
+  </div>
+  {% endif %}
+
+  {% for y in years_data %}
+  <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+
+    <!-- En-tête promotion -->
+    <div class="bg-rep-900 px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <div class="bg-white/10 rounded-xl px-4 py-2 text-center">
+          <p class="text-yellow-300 font-black text-2xl leading-none">{{ y.annee }}</p>
+          <p class="text-white/40 text-xs mt-0.5">Promotion</p>
+        </div>
+        <div>
+          <p class="text-white font-bold">{{ y.diploma_count }} diplôme{{ y.diploma_count|pluralize }} certifié{{ y.diploma_count|pluralize }}</p>
+          <p class="text-white/40 text-xs">Publié le {{ y.published_at|date:"d/m/Y à H:i" }}</p>
+        </div>
+      </div>
+      <div class="text-right hidden sm:block">
+        <p class="text-white/40 text-xs font-semibold uppercase tracking-wide mb-1">Racine officielle</p>
+        <p class="font-mono text-xs text-yellow-200">{{ y.root_hash|slice:":32" }}…</p>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-0 divide-y lg:divide-y-0 lg:divide-x divide-slate-100">
+
+      <!-- Arbre Merkle -->
+      <div class="p-5">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="font-semibold text-slate-700 text-sm">Arbre Merkle — Promotion {{ y.annee }}</h3>
+          <div class="flex gap-3 text-xs text-slate-400">
+            <span class="flex items-center gap-1">
+              <span class="inline-block w-2.5 h-2.5 rounded-full bg-slate-200 border border-slate-400"></span>Diplôme
+            </span>
+            <span class="flex items-center gap-1">
+              <span class="inline-block w-2.5 h-2.5 rounded-full bg-yellow-100 border border-yellow-500"></span>Racine
+            </span>
+          </div>
+        </div>
+        <svg class="merkle-svg-archive w-full" data-index="{{ forloop.counter0 }}"
+             height="220" style="display:block;"></svg>
+        <p class="text-xs text-slate-400 mt-2 text-center">
+          {{ y.diploma_count }} feuille{{ y.diploma_count|pluralize }} · Arbre indépendant de la promotion {{ y.annee }}
+        </p>
+      </div>
+
+      <!-- Statistiques de la promotion -->
+      <div class="p-5 space-y-4">
+        <h3 class="font-semibold text-slate-700 text-sm">Statistiques — Promotion {{ y.annee }}</h3>
+
+        <!-- Chiffres clés -->
+        <div class="grid grid-cols-3 gap-3">
+          <div class="bg-slate-50 rounded-xl p-3 text-center border border-slate-100">
+            <p class="text-2xl font-black text-rep-700">{{ y.diploma_count }}</p>
+            <p class="text-xs text-slate-400 mt-0.5">diplôme{{ y.diploma_count|pluralize }}</p>
+          </div>
+          <div class="bg-slate-50 rounded-xl p-3 text-center border border-slate-100">
+            <p class="text-2xl font-black text-rep-700">{{ y.stats.nb_universites }}</p>
+            <p class="text-xs text-slate-400 mt-0.5">université{{ y.stats.nb_universites|pluralize }}</p>
+          </div>
+          <div class="bg-slate-50 rounded-xl p-3 text-center border border-slate-100">
+            <p class="text-2xl font-black text-rep-700">{{ y.stats.nb_intitules }}</p>
+            <p class="text-xs text-slate-400 mt-0.5">filière{{ y.stats.nb_intitules|pluralize }}</p>
+          </div>
+        </div>
+
+        <!-- Répartition des mentions -->
+        <div>
+          <p class="text-xs font-semibold text-slate-500 mb-2">Répartition des mentions</p>
+          <div class="space-y-1.5">
+            {% if y.stats.mentions.felicitations %}
+            <div class="flex items-center gap-2">
+              <span class="w-24 text-xs text-slate-500 shrink-0">Félicitations</span>
+              <div class="flex-1 bg-slate-100 rounded-full h-1.5">
+                <div class="bg-yellow-400 h-1.5 rounded-full" style="width:{% widthratio y.stats.mentions.felicitations y.diploma_count 100 %}%"></div>
+              </div>
+              <span class="text-xs text-slate-400 w-4 text-right">{{ y.stats.mentions.felicitations }}</span>
+            </div>
+            {% endif %}
+            {% if y.stats.mentions.tres_bien %}
+            <div class="flex items-center gap-2">
+              <span class="w-24 text-xs text-slate-500 shrink-0">Très Bien</span>
+              <div class="flex-1 bg-slate-100 rounded-full h-1.5">
+                <div class="bg-rep-500 h-1.5 rounded-full" style="width:{% widthratio y.stats.mentions.tres_bien y.diploma_count 100 %}%"></div>
+              </div>
+              <span class="text-xs text-slate-400 w-4 text-right">{{ y.stats.mentions.tres_bien }}</span>
+            </div>
+            {% endif %}
+            {% if y.stats.mentions.bien %}
+            <div class="flex items-center gap-2">
+              <span class="w-24 text-xs text-slate-500 shrink-0">Bien</span>
+              <div class="flex-1 bg-slate-100 rounded-full h-1.5">
+                <div class="bg-rep-400 h-1.5 rounded-full" style="width:{% widthratio y.stats.mentions.bien y.diploma_count 100 %}%"></div>
+              </div>
+              <span class="text-xs text-slate-400 w-4 text-right">{{ y.stats.mentions.bien }}</span>
+            </div>
+            {% endif %}
+            {% if y.stats.mentions.assez_bien %}
+            <div class="flex items-center gap-2">
+              <span class="w-24 text-xs text-slate-500 shrink-0">Assez Bien</span>
+              <div class="flex-1 bg-slate-100 rounded-full h-1.5">
+                <div class="bg-slate-400 h-1.5 rounded-full" style="width:{% widthratio y.stats.mentions.assez_bien y.diploma_count 100 %}%"></div>
+              </div>
+              <span class="text-xs text-slate-400 w-4 text-right">{{ y.stats.mentions.assez_bien }}</span>
+            </div>
+            {% endif %}
+            {% if y.stats.mentions.passable %}
+            <div class="flex items-center gap-2">
+              <span class="w-24 text-xs text-slate-500 shrink-0">Passable</span>
+              <div class="flex-1 bg-slate-100 rounded-full h-1.5">
+                <div class="bg-slate-300 h-1.5 rounded-full" style="width:{% widthratio y.stats.mentions.passable y.diploma_count 100 %}%"></div>
+              </div>
+              <span class="text-xs text-slate-400 w-4 text-right">{{ y.stats.mentions.passable }}</span>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Pied de carte : racine complète -->
+    <div class="bg-slate-50 border-t border-slate-100 px-6 py-3 flex items-center gap-3">
+      <span class="text-xs text-slate-400 shrink-0 font-medium">Racine SHA-256 complète :</span>
+      <span class="font-mono text-xs text-slate-600 truncate">{{ y.root_hash }}</span>
+    </div>
+
+  </div>
+  {% endfor %}
+
+</div>
+
+<script>
+  const ANNUAL_TREES = [
+    {% for y in years_data %}{{ y.tree_json|safe }}{% if not forloop.last %},{% endif %}{% endfor %}
+  ];
+</script>
+<script src="{% static 'js/merkle.js' %}"></script>
+<script>
+  document.querySelectorAll('.merkle-svg-archive').forEach(svg => {
+    const treeData = ANNUAL_TREES[parseInt(svg.dataset.index)];
+    drawMerkleTree(svg, treeData, null, 'idle');
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,263 @@
+{% extends "lots/base.html" %}
+{% load static %}
+{% block title %}{{ diplome.prenom }} {{ diplome.nom }} — Registre National{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <!-- Breadcrumb -->
+  <div class="flex items-center gap-2 text-sm text-slate-500">
+    <a href="/" class="hover:text-rep-700">Archives</a>
+    <span>›</span>
+    <span class="text-slate-700 font-medium">{{ diplome.prenom }} {{ diplome.nom }}</span>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+    <!-- ── Colonne gauche ────────────────────────────────────────────────── -->
+    <div class="space-y-4">
+
+      <!-- Diplôme style officiel -->
+      <div class="bg-white border-2 border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+        <!-- En-tête République -->
+        <div class="bg-rep-900 px-5 py-4">
+          <div class="flex items-center gap-3">
+            <svg width="32" height="22" viewBox="0 0 32 22" style="border-radius:2px;box-shadow:0 0 0 1px rgba(255,255,255,0.2)">
+              <rect x="0"  y="0" width="11" height="22" fill="#002395"/>
+              <rect x="11" y="0" width="10" height="22" fill="#ffffff"/>
+              <rect x="21" y="0" width="11" height="22" fill="#ED2939"/>
+            </svg>
+            <div>
+              <p class="text-white font-bold text-sm">{{ diplome.universite }}</p>
+              <p class="text-white/50 text-xs">{{ diplome.faculte }}</p>
+            </div>
+            <div class="ml-auto text-right">
+              <p class="text-white/40 text-xs font-mono">Entrée #{{ diplome.merkle_leaf.leaf_index }}</p>
+              <p class="text-white/40 text-xs">Registre {{ diplome.date_obtention|date:"Y" }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Corps du diplôme -->
+        <div class="px-6 py-6 space-y-5">
+          <div class="text-center space-y-2">
+            <p class="text-xs text-slate-400 uppercase tracking-[0.2em] font-medium">Certifie que</p>
+            <p class="text-3xl font-bold text-rep-900 tracking-tight">{{ diplome.prenom }} {{ diplome.nom }}</p>
+            <p class="text-xs text-slate-400 font-mono tracking-wide">{{ diplome.numero_etudiant }}</p>
+          </div>
+
+          <div class="text-center border-t border-b border-slate-100 py-4 space-y-1">
+            <p class="text-xs text-slate-400 uppercase tracking-[0.2em]">a obtenu le grade de</p>
+            <p class="text-xl font-bold text-slate-800">{{ diplome.intitule }}</p>
+            <p class="text-sm text-rep-600 font-medium">{{ diplome.specialite }}</p>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <p class="text-xs text-slate-400 font-medium uppercase tracking-wide">Date d'obtention</p>
+              <p class="text-slate-700 font-semibold mt-0.5">{{ diplome.date_obtention|date:"d F Y" }}</p>
+            </div>
+            <div>
+              <p class="text-xs text-slate-400 font-medium uppercase tracking-wide">Mention</p>
+              <div class="mt-0.5">
+                {% if diplome.mention == 'tres_bien' or diplome.mention == 'felicitations' %}
+                  <span class="bg-yellow-100 text-yellow-800 text-sm px-3 py-0.5 rounded-full font-semibold">{{ diplome.get_mention_display }}</span>
+                {% elif diplome.mention == 'bien' %}
+                  <span class="bg-rep-100 text-rep-700 text-sm px-3 py-0.5 rounded-full font-semibold">{{ diplome.get_mention_display }}</span>
+                {% else %}
+                  <span class="bg-slate-100 text-slate-600 text-sm px-3 py-0.5 rounded-full">{{ diplome.get_mention_display }}</span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <!-- Hash de la feuille — ce que le QR embarquerait -->
+          <div class="bg-slate-50 rounded-lg p-3 border border-slate-100">
+            <p class="text-xs text-slate-400 font-medium mb-1">Empreinte dans l'arbre national</p>
+            <p class="font-mono text-xs text-slate-600 break-all">{{ diplome.merkle_leaf.leaf_hash }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Racine nationale de référence -->
+      <div class="bg-rep-900 text-white rounded-xl p-4">
+        <p class="text-xs font-bold uppercase tracking-widest text-white/50 mb-1">
+          Racine nationale — Promotion {{ diplome.date_obtention|date:"Y" }}
+        </p>
+        <p class="font-mono text-xs text-yellow-200 break-all">{{ root }}</p>
+        <p class="text-xs text-white/30 mt-2">
+          Publiée au Journal Officiel · Fait autorité indépendamment de tout serveur
+        </p>
+      </div>
+
+      <!-- Vérification -->
+      <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 space-y-4">
+        <div>
+          <h2 class="font-semibold text-slate-800">Vérification cryptographique locale</h2>
+          <p class="text-xs text-slate-500 mt-1">
+            Le calcul s'exécute dans votre navigateur via WebCrypto API.
+            Le serveur ne peut pas influencer le résultat.
+          </p>
+        </div>
+
+        <button id="btn-verify" onclick="runVerification()"
+                class="w-full bg-rep-700 hover:bg-rep-900 text-white py-2.5 rounded-lg text-sm font-medium transition-colors">
+          ▶ Vérifier contre la racine nationale
+        </button>
+
+        <div id="result" class="hidden animate-slide-in"></div>
+
+        <div id="steps-container" class="hidden">
+          <button onclick="document.getElementById('steps-list').classList.toggle('hidden')"
+                  class="text-xs text-slate-400 hover:text-slate-600 underline">
+            Afficher / masquer les étapes de calcul
+          </button>
+          <div id="steps-list" class="hidden mt-3 space-y-1.5 max-h-56 overflow-y-auto"></div>
+        </div>
+      </div>
+
+      <!-- Simulation de falsification -->
+      <div class="bg-red-50 border border-red-200 rounded-xl p-4 space-y-3">
+        <p class="text-xs font-bold text-red-700 uppercase tracking-wide">⚠ Simulation de falsification</p>
+        <p class="text-xs text-red-600">
+          Modifie la mention en base de données <strong>sans recalculer l'arbre national</strong>.
+          Illustre qu'une falsification post-publication de la racine est immédiatement détectable.
+        </p>
+        <button onclick="simulateTamper()"
+                class="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg text-xs font-medium">
+          Falsifier la mention → "Félicitations du jury"
+        </button>
+        <div id="tamper-result" class="hidden text-xs text-red-700 font-medium pt-1"></div>
+      </div>
+    </div>
+
+    <!-- ── Colonne droite : arbre Merkle ─────────────────────────────────── -->
+    <div class="space-y-4">
+      <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h2 class="font-semibold text-slate-800">Arbre Merkle national</h2>
+            <p class="text-xs text-slate-400 mt-0.5">Chaque feuille = un diplôme · Toutes universités confondues</p>
+          </div>
+          <div class="flex flex-col gap-1.5 text-xs text-slate-500 items-end">
+            <span class="flex items-center gap-1.5">
+              <span class="inline-block w-3 h-3 rounded-full bg-purple-200 border border-purple-500"></span>Ce diplôme
+            </span>
+            <span class="flex items-center gap-1.5">
+              <span class="inline-block w-3 h-3 rounded-full bg-rep-100 border border-rep-500"></span>Chemin de preuve
+            </span>
+            <span class="flex items-center gap-1.5">
+              <span class="inline-block w-3 h-3 rounded-full bg-yellow-100 border border-yellow-500"></span>Racine nationale
+            </span>
+          </div>
+        </div>
+
+        <svg id="merkle-svg" width="100%" height="300" style="display:block;"></svg>
+
+        <p class="text-xs text-slate-400 mt-3 text-center">
+          Chaque nœud est le hash de ses deux enfants · Modifier une feuille invalide toute la branche
+        </p>
+      </div>
+
+      <!-- Preuve JSON — ce qui est embarqué dans le diplôme -->
+      <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="font-semibold text-slate-800">Preuve embarquée dans le diplôme</h2>
+          <span class="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
+            {{ proof_json|length }} octets
+          </span>
+        </div>
+        <p class="text-xs text-slate-400 mb-3">
+          C'est cette structure qui serait encodée dans le QR code du diplôme physique.
+          Elle contient tout le nécessaire pour vérifier sans accès à internet.
+        </p>
+        <div class="bg-slate-50 rounded-lg p-3 overflow-auto max-h-64 border border-slate-100">
+          <pre class="text-xs text-slate-600" id="proof-display"></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const DIPLOME      = {{ diplome_json|safe }};
+  const PROOF        = {{ proof_json|safe }};
+  const TREE_DATA    = {{ tree_json|safe }};
+  const TRUSTED_ROOT = "{{ root }}";
+</script>
+
+<script src="{% static 'js/merkle.js' %}"></script>
+
+<script>
+  const svg = document.getElementById('merkle-svg');
+  drawMerkleTree(svg, TREE_DATA, PROOF.leafIndex, 'idle');
+  document.getElementById('proof-display').textContent = JSON.stringify(PROOF, null, 2);
+
+  async function runVerification() {
+    const btn = document.getElementById('btn-verify');
+    btn.disabled = true;
+    btn.textContent = '⏳ Calcul en cours…';
+
+    const result = await verifyProof(DIPLOME, PROOF, TRUSTED_ROOT);
+    drawMerkleTree(svg, TREE_DATA, PROOF.leafIndex, result.valid ? 'verified' : 'failed');
+
+    const resultEl = document.getElementById('result');
+    resultEl.classList.remove('hidden');
+
+    if (result.valid) {
+      resultEl.innerHTML = `
+        <div class="bg-green-50 border border-green-300 rounded-lg p-4 space-y-1.5">
+          <p class="font-bold text-green-800">✅ DIPLÔME AUTHENTIQUE</p>
+          <p class="text-xs text-green-700">
+            L'empreinte calculée correspond à la racine nationale publiée au Journal Officiel.
+            Ce diplôme n'a pas été modifié depuis sa certification.
+          </p>
+          <p class="font-mono text-xs text-green-600 break-all mt-1">${result.computedRoot}</p>
+          <p class="text-xs text-green-500">Vérifié en ${result.steps.length} étape(s) de hachage SHA-256.</p>
+        </div>`;
+    } else {
+      resultEl.innerHTML = `
+        <div class="bg-red-50 border border-red-300 rounded-lg p-4 space-y-1.5">
+          <p class="font-bold text-red-800">❌ FALSIFICATION DÉTECTÉE</p>
+          <p class="text-xs text-red-700">${result.reason}</p>
+          ${result.computedRoot
+            ? `<div class="mt-2 space-y-0.5">
+                 <p class="text-xs text-red-600 font-mono">Calculé&nbsp;: ${result.computedRoot.slice(0,24)}…</p>
+                 <p class="text-xs text-red-600 font-mono">Attendu&nbsp;&nbsp;: ${result.expectedRoot.slice(0,24)}…</p>
+               </div>`
+            : `<div class="mt-2 space-y-0.5">
+                 <p class="text-xs text-red-600 font-mono">Hash calculé&nbsp;: ${result.computedLeafHash?.slice(0,24)}…</p>
+                 <p class="text-xs text-red-600 font-mono">Hash attendu&nbsp;&nbsp;: ${result.expectedLeafHash?.slice(0,24)}…</p>
+               </div>`}
+          <p class="text-xs text-red-500 mt-1">Ce diplôme a été modifié après publication de la racine nationale.</p>
+        </div>`;
+    }
+
+    if (result.steps.length > 0) {
+      document.getElementById('steps-container').classList.remove('hidden');
+      document.getElementById('steps-list').innerHTML = result.steps.map(s => `
+        <div class="bg-slate-50 border border-slate-100 rounded p-2 text-xs font-mono">
+          <span class="text-slate-400">Étape ${s.step} — frère ${s.direction}</span><br/>
+          <span class="text-slate-500">H(${s.myHash.slice(0,8)}… + ${s.siblingHash.slice(0,8)}…)</span>
+          <span class="text-slate-400"> = </span>
+          <span class="${result.valid ? 'text-green-700' : 'text-red-700'}">${s.output.slice(0,16)}…</span>
+        </div>`).join('');
+    }
+
+    btn.disabled = false;
+    btn.textContent = '↺ Revérifier';
+  }
+
+  async function simulateTamper() {
+    const res  = await fetch(`/api/diplomes/{{ diplome.id }}/tamper/`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ mention: 'felicitations' }),
+    });
+    const el = document.getElementById('tamper-result');
+    el.classList.remove('hidden');
+    el.textContent = 'Mention modifiée en base. La racine nationale n\'a pas changé. Relancez la vérification.';
+    DIPLOME.mention = 'felicitations';
+  }
+</script>
+{% endblock %}

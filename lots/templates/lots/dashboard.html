@@ -1,0 +1,248 @@
+{% extends "lots/base.html" %}
+{% block title %}Registre National des Diplômes — DiploVerif{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+
+  <!-- Header -->
+  <div class="flex items-start justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-800">Registre National des Diplômes</h1>
+      <p class="text-slate-500 mt-1 text-sm max-w-xl">
+        Toutes les universités contribuent annuellement à un unique arbre Merkle.
+        La racine est co-signée et publiée au Journal Officiel — aucune institution ne la contrôle seule.
+      </p>
+    </div>
+    <button onclick="document.getElementById('modal-create').classList.remove('hidden')"
+            class="shrink-0 bg-rep-700 hover:bg-rep-900 text-white text-sm px-4 py-2 rounded-lg font-medium shadow">
+      + Soumettre un diplôme
+    </button>
+  </div>
+
+  <!-- Racine nationale -->
+  {% if root %}
+  <div class="bg-rep-900 text-white rounded-2xl p-5 shadow-lg">
+    <div class="flex items-start gap-4">
+      <div class="bg-white/10 p-2.5 rounded-xl shrink-0">
+        <svg class="w-6 h-6 text-yellow-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0
+               01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622
+               5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+        </svg>
+      </div>
+      <div class="flex-1 min-w-0 space-y-1">
+        <div class="flex items-center gap-2">
+          <p class="text-xs font-bold uppercase tracking-widest text-white/60">Racine Merkle Nationale — Promotion {{ root.created_at|date:"Y" }}</p>
+          <span class="bg-green-400/20 text-green-300 text-xs px-2 py-0.5 rounded-full font-medium border border-green-400/30">
+            Certifiée
+          </span>
+        </div>
+        <p class="font-mono text-sm text-yellow-200 break-all">{{ root.root_hash }}</p>
+        <p class="text-xs text-white/40 mt-1">
+          Cette valeur est publiée au Journal Officiel et fait autorité.
+          Toute preuve valide contre cette racine est authentique, indépendamment de tout serveur.
+        </p>
+      </div>
+      <div class="text-right text-xs text-white/40 shrink-0">
+        <p class="text-white/70 font-semibold">{{ root.tree_size }} diplôme{{ root.tree_size|pluralize }}</p>
+        <p>Publié le {{ root.created_at|date:"d/m/Y" }}</p>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="bg-slate-100 border-2 border-dashed border-slate-300 rounded-2xl p-8 text-center text-slate-400">
+    <p class="font-medium">Aucun diplôme soumis</p>
+    <p class="text-sm mt-1">La racine nationale sera générée lors de la première soumission.</p>
+  </div>
+  {% endif %}
+
+  <!-- Stats par université -->
+  {% if universites %}
+  <div>
+    <h2 class="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">Établissements participants</h2>
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+      {% for uni in universites %}
+      <div class="bg-white border border-slate-200 rounded-xl px-4 py-3 shadow-sm">
+        <p class="text-xs font-semibold text-slate-700 leading-tight">{{ uni.universite }}</p>
+        <p class="text-xs text-slate-400 mt-1">{{ uni.nb }} diplôme{{ uni.nb|pluralize }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Liste des diplômes -->
+  <div>
+    <h2 class="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">
+      Entrées du registre — {{ diplomes|length }} diplôme{{ diplomes|length|pluralize }}
+    </h2>
+    <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="bg-slate-50 border-b border-slate-100">
+          <tr>
+            <th class="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">#</th>
+            <th class="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Titulaire</th>
+            <th class="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Diplôme</th>
+            <th class="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Établissement</th>
+            <th class="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Mention</th>
+            <th class="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Date</th>
+            <th class="px-4 py-3"></th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-50">
+          {% for d in diplomes %}
+          <tr class="hover:bg-rep-50 transition-colors">
+            <td class="px-4 py-3 font-mono text-xs text-slate-400">
+              {% if d.merkle_leaf %}{{ d.merkle_leaf.leaf_index }}{% endif %}
+            </td>
+            <td class="px-4 py-3">
+              <p class="font-semibold text-slate-800">{{ d.prenom }} {{ d.nom }}</p>
+              <p class="text-xs text-slate-400 font-mono">{{ d.numero_etudiant }}</p>
+            </td>
+            <td class="px-4 py-3 text-xs">
+              <p class="text-slate-700 font-medium">{{ d.intitule }}</p>
+              <p class="text-slate-400">{{ d.specialite }}</p>
+            </td>
+            <td class="px-4 py-3 text-xs text-slate-600">{{ d.universite }}</td>
+            <td class="px-4 py-3">
+              {% if d.mention == 'tres_bien' or d.mention == 'felicitations' %}
+                <span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-0.5 rounded-full font-medium">{{ d.get_mention_display }}</span>
+              {% elif d.mention == 'bien' %}
+                <span class="bg-rep-100 text-rep-700 text-xs px-2 py-0.5 rounded-full font-medium">{{ d.get_mention_display }}</span>
+              {% else %}
+                <span class="bg-slate-100 text-slate-500 text-xs px-2 py-0.5 rounded-full">{{ d.get_mention_display }}</span>
+              {% endif %}
+            </td>
+            <td class="px-4 py-3 text-xs text-slate-400">{{ d.date_obtention|date:"d/m/Y" }}</td>
+            <td class="px-4 py-3 text-right">
+              <a href="{% url 'diplome_detail' d.id %}"
+                 class="text-rep-700 hover:text-rep-900 text-xs font-medium whitespace-nowrap">
+                Vérifier →
+              </a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7" class="px-4 py-10 text-center text-slate-400">
+              Aucun diplôme soumis au registre national.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Explication rapide -->
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+      <p class="text-xs font-bold text-rep-700 uppercase tracking-wide mb-2">1 — Cérémonie nationale</p>
+      <p class="text-xs text-slate-500">Chaque année, les universités soumettent leurs diplômés. Un arbre Merkle unique est construit et la racine est co-signée par toutes les parties.</p>
+    </div>
+    <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+      <p class="text-xs font-bold text-rep-700 uppercase tracking-wide mb-2">2 — Preuve embarquée</p>
+      <p class="text-xs text-slate-500">Chaque diplôme est distribué avec sa preuve Merkle intégrée. Aucun serveur n'est nécessaire pour la vérifier — elle se suffit à elle-même.</p>
+    </div>
+    <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+      <p class="text-xs font-bold text-rep-700 uppercase tracking-wide mb-2">3 — Vérification locale</p>
+      <p class="text-xs text-slate-500">L'employeur calcule lui-même la preuve dans son navigateur et compare avec la racine publiée au Journal Officiel. Résultat en moins d'une seconde.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Modal soumission -->
+<div id="modal-create" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+  <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+    <div>
+      <h2 class="font-bold text-lg text-slate-800">Soumettre un diplôme au registre national</h2>
+      <p class="text-xs text-slate-400 mt-1">La racine nationale sera recalculée après chaque soumission.</p>
+    </div>
+    <div id="create-error" class="hidden bg-red-50 text-red-700 text-sm rounded-lg p-3"></div>
+
+    <form id="form-create" class="space-y-3">
+      {% csrf_token %}
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-xs font-medium text-slate-600">N° étudiant</label>
+          <input name="numero_etudiant" placeholder="ETU-2024-009" required
+                 class="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rep-500"/>
+        </div>
+        <div>
+          <label class="text-xs font-medium text-slate-600">Mention</label>
+          <select name="mention" required
+                  class="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rep-500">
+            <option value="passable">Passable</option>
+            <option value="assez_bien">Assez Bien</option>
+            <option value="bien">Bien</option>
+            <option value="tres_bien">Très Bien</option>
+            <option value="felicitations">Félicitations du jury</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs font-medium text-slate-600">Prénom</label>
+          <input name="prenom" placeholder="Jean" required
+                 class="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rep-500"/>
+        </div>
+        <div>
+          <label class="text-xs font-medium text-slate-600">Nom</label>
+          <input name="nom" placeholder="Martin" required
+                 class="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rep-500"/>
+        </div>
+        <div class="col-span-2">
+          <label class="text-xs font-medium text-slate-600">Intitulé du diplôme</label>
+          <input name="intitule" placeholder="Master Informatique" required
+                 class="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rep-500"/>
+        </div>
+        <div class="col-span-2">
+          <label class="text-xs font-medium text-slate-600">Spécialité</label>
+          <input name="specialite" placeholder="Cybersécurité" required
+                 class="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rep-500"/>
+        </div>
+        <div class="col-span-2">
+          <label class="text-xs font-medium text-slate-600">Université</label>
+          <input name="universite" placeholder="Université Paris-Saclay" required
+                 class="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rep-500"/>
+        </div>
+        <div class="col-span-2">
+          <label class="text-xs font-medium text-slate-600">Faculté</label>
+          <input name="faculte" placeholder="Faculté des Sciences" required
+                 class="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rep-500"/>
+        </div>
+        <div class="col-span-2">
+          <label class="text-xs font-medium text-slate-600">Date d'obtention</label>
+          <input name="date_obtention" type="date" required
+                 class="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rep-500"/>
+        </div>
+      </div>
+      <div class="flex gap-3 pt-2">
+        <button type="submit"
+                class="flex-1 bg-rep-700 hover:bg-rep-900 text-white py-2 rounded-lg text-sm font-medium">
+          Soumettre au registre national
+        </button>
+        <button type="button"
+                onclick="document.getElementById('modal-create').classList.add('hidden')"
+                class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-2 rounded-lg text-sm font-medium">
+          Annuler
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+document.getElementById('form-create').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const fd   = new FormData(e.target);
+  const body = Object.fromEntries(fd.entries());
+  delete body.csrfmiddlewaretoken;
+  const errEl = document.getElementById('create-error');
+  errEl.classList.add('hidden');
+  const res  = await fetch('/api/diplomes/', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+  const data = await res.json();
+  if (!res.ok) { errEl.textContent = data.error || 'Erreur'; errEl.classList.remove('hidden'); return; }
+  window.location.href = `/diplomes/${data.id}/`;
+
+});
+</script>
+{% endblock %}

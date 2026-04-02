@@ -1,0 +1,230 @@
+{% extends "lots/base.html" %}
+{% load static %}
+{% block title %}{{ lot.batch_number }} — PharmLedger{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <!-- Breadcrumb -->
+  <div class="flex items-center gap-2 text-sm text-slate-500">
+    <a href="/" class="hover:text-blue-600">Dashboard</a>
+    <span>›</span>
+    <span class="text-slate-700 font-medium">{{ lot.batch_number }}</span>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+    <!-- ── Colonne gauche : données + actions ─────────────────────────────── -->
+    <div class="space-y-4">
+
+      <!-- Fiche lot -->
+      <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 space-y-3">
+        <h1 class="text-xl font-bold text-slate-800">{{ lot.batch_number }}</h1>
+        <div class="grid grid-cols-2 gap-3 text-sm">
+          <div>
+            <p class="text-xs text-slate-400 uppercase tracking-wide font-medium">Médicament</p>
+            <p class="text-slate-700 font-medium">{{ lot.drug_name }}</p>
+          </div>
+          <div>
+            <p class="text-xs text-slate-400 uppercase tracking-wide font-medium">Fabricant</p>
+            <p class="text-slate-700">{{ lot.manufacturer }}</p>
+          </div>
+          <div>
+            <p class="text-xs text-slate-400 uppercase tracking-wide font-medium">Production</p>
+            <p class="text-slate-700">{{ lot.production_date|date:"d/m/Y" }}</p>
+          </div>
+          <div>
+            <p class="text-xs text-slate-400 uppercase tracking-wide font-medium">Expiration</p>
+            <p class="text-slate-700">{{ lot.expiry_date|date:"d/m/Y" }}</p>
+          </div>
+          <div>
+            <p class="text-xs text-slate-400 uppercase tracking-wide font-medium">Quantité</p>
+            <p class="text-slate-700">{{ lot.quantity }} unités</p>
+          </div>
+          <div>
+            <p class="text-xs text-slate-400 uppercase tracking-wide font-medium">Enregistré le</p>
+            <p class="text-slate-700">{{ lot.created_at|date:"d/m/Y H:i" }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Root certifiée -->
+      <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-1">
+        <p class="text-xs font-semibold text-amber-700 uppercase tracking-wide">Racine Merkle certifiée</p>
+        <p class="font-mono text-xs text-amber-800 break-all">{{ root }}</p>
+        <p class="text-xs text-amber-600">Cette valeur fait foi — elle est récupérée indépendamment de la preuve.</p>
+      </div>
+
+      <!-- Panneau de vérification -->
+      <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 space-y-4">
+        <h2 class="font-semibold text-slate-800">Vérification cryptographique</h2>
+        <p class="text-xs text-slate-500">
+          La vérification s'exécute <strong>entièrement dans votre navigateur</strong> via WebCrypto.
+          Le serveur ne peut pas influencer le résultat.
+        </p>
+
+        <button id="btn-verify" onclick="runVerification()"
+                class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg text-sm font-medium transition-colors">
+          ▶ Lancer la vérification
+        </button>
+
+        <!-- Résultat -->
+        <div id="result" class="hidden animate-slide-in"></div>
+
+        <!-- Étapes de calcul -->
+        <div id="steps-container" class="hidden">
+          <button onclick="toggleSteps()" class="text-xs text-slate-500 hover:text-slate-700 underline">
+            Afficher / masquer les étapes de calcul
+          </button>
+          <div id="steps-list" class="hidden mt-3 space-y-2 max-h-64 overflow-y-auto text-xs font-mono"></div>
+        </div>
+      </div>
+
+      <!-- Bouton Tamper (démo) -->
+      <div class="bg-red-50 border border-red-200 rounded-xl p-4 space-y-3">
+        <p class="text-xs font-semibold text-red-700 uppercase tracking-wide">⚠ Simulation d'attaque</p>
+        <p class="text-xs text-red-600">
+          Modifie la quantité directement en base de données <strong>sans mettre à jour le Merkle tree</strong>.
+          La prochaine vérification devrait échouer.
+        </p>
+        <button onclick="simulateTamper()"
+                class="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg text-xs font-medium transition-colors">
+          Falsifier ce lot (quantité ÷ 2)
+        </button>
+        <div id="tamper-result" class="hidden text-xs text-red-700 font-medium"></div>
+      </div>
+    </div>
+
+    <!-- ── Colonne droite : arbre Merkle ──────────────────────────────────── -->
+    <div class="space-y-4">
+      <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="font-semibold text-slate-800">Arbre Merkle</h2>
+          <div class="flex gap-3 text-xs text-slate-500">
+            <span class="flex items-center gap-1">
+              <span class="inline-block w-3 h-3 rounded-full bg-purple-200 border border-purple-500"></span> Ce lot
+            </span>
+            <span class="flex items-center gap-1">
+              <span class="inline-block w-3 h-3 rounded-full bg-blue-200 border border-blue-500"></span> Chemin de preuve
+            </span>
+            <span class="flex items-center gap-1">
+              <span class="inline-block w-3 h-3 rounded-full bg-yellow-100 border border-yellow-500"></span> Racine
+            </span>
+          </div>
+        </div>
+
+        <svg id="merkle-svg" width="100%" height="320"
+             style="min-height:200px; display:block;">
+        </svg>
+
+        <p class="text-xs text-slate-400 mt-2 text-center">
+          Nœuds en bleu = chemin de la preuve d'inclusion · Cliquez sur "Vérifier" pour animer
+        </p>
+      </div>
+
+      <!-- Détail de la preuve -->
+      <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5">
+        <h2 class="font-semibold text-slate-800 mb-3">Preuve d'inclusion (JSON)</h2>
+        <div class="bg-slate-50 rounded-lg p-3 overflow-x-auto">
+          <pre class="text-xs text-slate-600" id="proof-display"></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── Données injectées par Django ─────────────────────────────────────── -->
+<script>
+  const LOT        = {{ lot_json|safe }};
+  const PROOF      = {{ proof_json|safe }};
+  const TREE_DATA  = {{ tree_json|safe }};
+  const TRUSTED_ROOT = "{{ root }}";
+</script>
+
+<script src="{% static 'js/merkle.js' %}"></script>
+
+<script>
+  // ── Initialisation ────────────────────────────────────────────────────────
+  const svg = document.getElementById('merkle-svg');
+  drawMerkleTree(svg, TREE_DATA, PROOF.leafIndex, 'idle');
+
+  // Afficher la preuve formatée
+  document.getElementById('proof-display').textContent =
+    JSON.stringify(PROOF, null, 2);
+
+  // ── Vérification ─────────────────────────────────────────────────────────
+  async function runVerification() {
+    const btn = document.getElementById('btn-verify');
+    btn.disabled = true;
+    btn.textContent = '⏳ Calcul en cours…';
+
+    const result = await verifyProof(LOT, PROOF, TRUSTED_ROOT);
+
+    // Mettre à jour l'arbre SVG
+    drawMerkleTree(svg, TREE_DATA, PROOF.leafIndex, result.valid ? 'verified' : 'failed');
+
+    // Afficher le résultat
+    const resultEl = document.getElementById('result');
+    resultEl.classList.remove('hidden');
+    if (result.valid) {
+      resultEl.innerHTML = `
+        <div class="bg-green-50 border border-green-300 rounded-lg p-4 space-y-1">
+          <p class="font-semibold text-green-800 text-sm">✅ LOT AUTHENTIQUE</p>
+          <p class="text-xs text-green-700">Racine calculée = racine certifiée</p>
+          <p class="font-mono text-xs text-green-600">${result.computedRoot}</p>
+          <p class="text-xs text-green-600 mt-1">Preuve vérifiée en ${result.steps.length} étape(s) de hash.</p>
+        </div>`;
+    } else {
+      resultEl.innerHTML = `
+        <div class="bg-red-50 border border-red-300 rounded-lg p-4 space-y-1">
+          <p class="font-semibold text-red-800 text-sm">❌ FALSIFICATION DÉTECTÉE</p>
+          <p class="text-xs text-red-700">${result.reason}</p>
+          ${result.computedRoot ? `
+            <p class="text-xs text-red-600 mt-2">Calculé&nbsp;: <span class="font-mono">${result.computedRoot?.slice(0,24)}…</span></p>
+            <p class="text-xs text-red-600">Attendu&nbsp;&nbsp;: <span class="font-mono">${result.expectedRoot?.slice(0,24)}…</span></p>
+          ` : `<p class="text-xs text-red-600 font-mono mt-1">Hash feuille calculé&nbsp;: ${result.computedLeafHash?.slice(0,24)}…</p>
+               <p class="text-xs text-red-600 font-mono">Hash feuille attendu&nbsp;&nbsp;: ${result.expectedLeafHash?.slice(0,24)}…</p>`}
+        </div>`;
+    }
+
+    // Afficher les étapes
+    if (result.steps.length > 0) {
+      const stepsContainer = document.getElementById('steps-container');
+      const stepsList      = document.getElementById('steps-list');
+      stepsContainer.classList.remove('hidden');
+      stepsList.innerHTML = result.steps.map(s => `
+        <div class="bg-slate-50 rounded p-2 border border-slate-100">
+          <span class="text-slate-400">Étape ${s.step}</span>
+          <span class="text-slate-500"> — frère (${s.direction})</span><br/>
+          <span class="text-slate-600">H( ${s.myHash.slice(0,10)}… + ${s.siblingHash.slice(0,10)}… )</span>
+          <span class="text-slate-400"> = </span>
+          <span class="${result.valid ? 'text-green-700' : 'text-red-700'}">${s.output.slice(0,16)}…</span>
+        </div>`).join('');
+    }
+
+    btn.disabled  = false;
+    btn.textContent = '↺ Revérifier';
+  }
+
+  function toggleSteps() {
+    const el = document.getElementById('steps-list');
+    el.classList.toggle('hidden');
+  }
+
+  // ── Simulation d'attaque ──────────────────────────────────────────────────
+  async function simulateTamper() {
+    const newQty = Math.max(1, Math.floor(LOT.quantity / 2));
+    const res = await fetch(`/api/lots/{{ lot.id }}/tamper/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ quantity: newQty }),
+    });
+    const data = await res.json();
+    const el = document.getElementById('tamper-result');
+    el.classList.remove('hidden');
+    el.textContent = `Quantité modifiée : ${LOT.quantity} → ${newQty}. Relancez la vérification.`;
+    LOT.quantity = newQty;  // Mettre à jour les données locales pour la prochaine vérif
+  }
+</script>
+{% endblock %}

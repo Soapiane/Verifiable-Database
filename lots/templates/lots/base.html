@@ -1,0 +1,96 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}DiploVerif{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            rep: { 50:'#f0f4ff', 100:'#e0e9ff', 400:'#6b8cff', 500:'#3b5bdb', 700:'#2c44a8', 900:'#1a2a6e' }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @keyframes pulse-green { 0%,100%{opacity:1} 50%{opacity:.5} }
+    @keyframes pulse-red   { 0%,100%{opacity:1} 50%{opacity:.4} }
+    @keyframes slide-in    { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+    .node-default   { fill:#e2e8f0; stroke:#94a3b8; stroke-width:1.5; }
+    .node-on-path   { fill:#c7d7fd; stroke:#3b5bdb; stroke-width:2.5; }
+    .node-verified  { fill:#bbf7d0; stroke:#22c55e; stroke-width:2.5; animation:pulse-green 1.2s ease-in-out 3; }
+    .node-failed    { fill:#fecaca; stroke:#ef4444; stroke-width:2.5; animation:pulse-red 1.2s ease-in-out 3; }
+    .node-root      { fill:#fef3c7; stroke:#ca8a04; stroke-width:2.5; }
+    .node-leaf-self { fill:#ddd6fe; stroke:#7c3aed; stroke-width:2.5; }
+    .node-empty     { fill:#f8fafc; stroke:#e2e8f0; stroke-width:1; stroke-dasharray:4 3; }
+
+    .edge-default   { stroke:#e2e8f0; stroke-width:1.5; }
+    .edge-on-path   { stroke:#3b5bdb; stroke-width:2.5; }
+    .edge-verified  { stroke:#22c55e; stroke-width:2.5; }
+    .edge-failed    { stroke:#ef4444; stroke-width:2.5; }
+
+    .animate-slide-in { animation:slide-in .3s ease-out; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+  <!-- Bandeau République -->
+  <div class="bg-rep-900 text-white">
+    <div class="max-w-6xl mx-auto px-4 py-2 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <!-- Drapeau tricolore -->
+        <svg width="28" height="19" viewBox="0 0 28 19" style="border-radius:2px;box-shadow:0 0 0 1px rgba(255,255,255,0.2)">
+          <rect x="0"  y="0" width="10" height="19" fill="#002395"/>
+          <rect x="10" y="0" width="8"  height="19" fill="#ffffff"/>
+          <rect x="18" y="0" width="10" height="19" fill="#ED2939"/>
+        </svg>
+        <div>
+          <p class="text-xs font-bold tracking-widest uppercase opacity-90">République Française</p>
+          <p class="text-xs opacity-50 tracking-wider">Ministère de l'Enseignement Supérieur</p>
+        </div>
+      </div>
+      <p class="text-xs opacity-40 hidden sm:block">Registre National des Diplômes — Accès public</p>
+    </div>
+  </div>
+
+  <!-- Navbar principale -->
+  <nav class="bg-white border-b border-slate-200 shadow-sm">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center gap-6">
+      <a href="/" class="flex items-center gap-2 font-bold text-rep-700 text-lg tracking-tight">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0
+               01.665 6.479A11.952 11.952 0 0112 20.055a11.952 11.952 0
+               00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/>
+        </svg>
+        DiploVerif
+      </a>
+      <span class="text-slate-200">|</span>
+      <a href="/" class="text-sm text-slate-500 hover:text-rep-700">Archives</a>
+      <a href="/registre/" class="text-sm text-slate-500 hover:text-rep-700">Registre</a>
+      <div class="ml-auto flex items-center gap-2 text-xs text-slate-400">
+        <span class="w-2 h-2 rounded-full bg-green-400 inline-block animate-pulse"></span>
+        Arbre Merkle national actif
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-6xl mx-auto px-4 py-8 flex-1 w-full">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="border-t border-slate-200 bg-white mt-auto">
+    <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between text-xs text-slate-400">
+      <p>DiploVerif — Registre National des Diplômes Vérifiables par preuve Merkle</p>
+      <p>Vérification cryptographique locale · WebCrypto API · SHA-256</p>
+    </div>
+  </footer>
+
+</body>
+</html>
