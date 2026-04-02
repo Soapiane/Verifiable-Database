@@ -10,6 +10,8 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
+import shutil
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -73,10 +75,25 @@ WSGI_APPLICATION = 'pharmleder.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+def _get_database_name():
+    local_db = BASE_DIR / 'db.sqlite3'
+
+    if os.getenv('VERCEL'):
+        writable_db = Path('/tmp/db.sqlite3')
+        if local_db.exists() and not writable_db.exists():
+            try:
+                shutil.copy2(local_db, writable_db)
+            except OSError:
+                pass
+        return writable_db
+
+    return local_db
+
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'NAME': _get_database_name(),
     }
 }
 
