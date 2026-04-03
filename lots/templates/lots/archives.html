@@ -1,6 +1,6 @@
 {% extends "lots/base.html" %}
 {% load static %}
-{% block title %}Archives — Promotions & Arbres Merkle{% endblock %}
+{% block title %}Archives | Promotions & Arbres Merkle{% endblock %}
 
 {% block content %}
 <div class="space-y-8">
@@ -58,7 +58,7 @@
       <!-- Arbre Merkle -->
       <div class="p-5">
         <div class="flex items-center justify-between mb-3">
-          <h3 class="font-semibold text-slate-700 text-sm">Arbre Merkle — Promotion {{ y.annee }}</h3>
+          <h3 class="font-semibold text-slate-700 text-sm">Arbre Merkle · Promotion {{ y.annee }}</h3>
           <div class="flex gap-3 text-xs text-slate-400">
             <span class="flex items-center gap-1">
               <span class="inline-block w-2.5 h-2.5 rounded-full bg-slate-200 border border-slate-400"></span>Diplôme
@@ -77,7 +77,7 @@
 
       <!-- Statistiques de la promotion -->
       <div class="p-5 space-y-4">
-        <h3 class="font-semibold text-slate-700 text-sm">Statistiques — Promotion {{ y.annee }}</h3>
+        <h3 class="font-semibold text-slate-700 text-sm">Statistiques · Promotion {{ y.annee }}</h3>
 
         <!-- Chiffres clés -->
         <div class="grid grid-cols-3 gap-3">

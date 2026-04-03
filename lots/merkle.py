@@ -1,5 +1,5 @@
 """
-Moteur Merkle — DiploVerif
+Moteur Merkle / DiploVerif
 ==========================
 Même algorithme que static/js/merkle.js. Toute modification ici
 doit être répercutée dans le fichier JS (et vice-versa).

@@ -5,6 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{% block title %}DiploVerif{% endblock %}</title>
+  <link rel="icon" type="image/svg+xml" href="{% static 'favicon.svg' %}">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -55,7 +56,7 @@
           <p class="text-xs opacity-50 tracking-wider">Ministère de l'Enseignement Supérieur</p>
         </div>
       </div>
-      <p class="text-xs opacity-40 hidden sm:block">Registre National des Diplômes — Accès public</p>
+      <p class="text-xs opacity-40 hidden sm:block">Registre National des Diplômes · Accès public</p>
     </div>
   </div>
 
@@ -87,7 +88,7 @@
 
   <footer class="border-t border-slate-200 bg-white mt-auto">
     <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between text-xs text-slate-400">
-      <p>DiploVerif — Registre National des Diplômes Vérifiables par preuve Merkle</p>
+      <p>DiploVerif · Registre National des Diplômes Vérifiables par preuve Merkle</p>
       <p>Vérification cryptographique locale · WebCrypto API · SHA-256</p>
     </div>
   </footer>

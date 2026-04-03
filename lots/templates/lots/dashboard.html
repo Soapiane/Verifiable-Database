@@ -1,5 +1,5 @@
 {% extends "lots/base.html" %}
-{% block title %}Registre National des Diplômes — DiploVerif{% endblock %}
+{% block title %}Registre National des Diplômes | DiploVerif{% endblock %}
 
 {% block content %}
 <div class="space-y-8">
@@ -10,7 +10,7 @@
       <h1 class="text-2xl font-bold text-slate-800">Registre National des Diplômes</h1>
       <p class="text-slate-500 mt-1 text-sm max-w-xl">
         Toutes les universités contribuent annuellement à un unique arbre Merkle.
-        La racine est co-signée et publiée au Journal Officiel — aucune institution ne la contrôle seule.
+        La racine est co-signée et publiée au Journal Officiel. Aucune institution ne la contrôle seule.
       </p>
     </div>
     <button onclick="document.getElementById('modal-create').classList.remove('hidden')"
@@ -19,41 +19,36 @@
     </button>
   </div>
 
-  <!-- Racine nationale -->
-  {% if root %}
-  <div class="bg-rep-900 text-white rounded-2xl p-5 shadow-lg">
-    <div class="flex items-start gap-4">
-      <div class="bg-white/10 p-2.5 rounded-xl shrink-0">
-        <svg class="w-6 h-6 text-yellow-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0
-               01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622
-               5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
-        </svg>
-      </div>
-      <div class="flex-1 min-w-0 space-y-1">
-        <div class="flex items-center gap-2">
-          <p class="text-xs font-bold uppercase tracking-widest text-white/60">Racine Merkle Nationale — Promotion {{ root.created_at|date:"Y" }}</p>
-          <span class="bg-green-400/20 text-green-300 text-xs px-2 py-0.5 rounded-full font-medium border border-green-400/30">
-            Certifiée
-          </span>
+  <!-- Racines annuelles certifiées -->
+  {% if annual_roots %}
+  <div class="space-y-3">
+    <h2 class="text-sm font-semibold text-slate-500 uppercase tracking-wide">Racines Merkle par promotion, publiées au Journal Officiel</h2>
+    {% for ar in annual_roots %}
+    <div class="bg-rep-900 text-white rounded-xl p-4 shadow-md">
+      <div class="flex items-start justify-between gap-4">
+        <div class="flex-1 min-w-0 space-y-1">
+          <div class="flex items-center gap-2">
+            <p class="text-xs font-bold uppercase tracking-widest text-white/60">Promotion {{ ar.annee }}</p>
+            <span class="bg-green-400/20 text-green-300 text-xs px-2 py-0.5 rounded-full font-medium border border-green-400/30">Certifiée</span>
+          </div>
+          <p class="font-mono text-xs text-yellow-200 break-all">{{ ar.root_hash }}</p>
+          <p class="text-xs text-white/40 mt-1">
+            Cette racine engage l'ensemble des {{ ar.diploma_count }} diplôme{{ ar.diploma_count|pluralize }} de la promotion.
+            Valide à vie, sans dépendance à un serveur.
+          </p>
         </div>
-        <p class="font-mono text-sm text-yellow-200 break-all">{{ root.root_hash }}</p>
-        <p class="text-xs text-white/40 mt-1">
-          Cette valeur est publiée au Journal Officiel et fait autorité.
-          Toute preuve valide contre cette racine est authentique, indépendamment de tout serveur.
-        </p>
-      </div>
-      <div class="text-right text-xs text-white/40 shrink-0">
-        <p class="text-white/70 font-semibold">{{ root.tree_size }} diplôme{{ root.tree_size|pluralize }}</p>
-        <p>Publié le {{ root.created_at|date:"d/m/Y" }}</p>
+        <div class="text-right text-xs text-white/40 shrink-0">
+          <p class="text-white/70 font-semibold">{{ ar.diploma_count }} diplôme{{ ar.diploma_count|pluralize }}</p>
+          <p>Publié le {{ ar.published_at|date:"d/m/Y" }}</p>
+        </div>
       </div>
     </div>
+    {% endfor %}
   </div>
   {% else %}
   <div class="bg-slate-100 border-2 border-dashed border-slate-300 rounded-2xl p-8 text-center text-slate-400">
     <p class="font-medium">Aucun diplôme soumis</p>
-    <p class="text-sm mt-1">La racine nationale sera générée lors de la première soumission.</p>
+    <p class="text-sm mt-1">La racine annuelle sera générée lors de la première soumission.</p>
   </div>
   {% endif %}
 
@@ -75,13 +70,12 @@
   <!-- Liste des diplômes -->
   <div>
     <h2 class="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">
-      Entrées du registre — {{ diplomes|length }} diplôme{{ diplomes|length|pluralize }}
+      Entrées du registre : {{ diplomes|length }} diplôme{{ diplomes|length|pluralize }}
     </h2>
     <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
       <table class="w-full text-sm">
         <thead class="bg-slate-50 border-b border-slate-100">
           <tr>
-            <th class="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">#</th>
             <th class="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Titulaire</th>
             <th class="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Diplôme</th>
             <th class="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Établissement</th>
@@ -93,9 +87,6 @@
         <tbody class="divide-y divide-slate-50">
           {% for d in diplomes %}
           <tr class="hover:bg-rep-50 transition-colors">
-            <td class="px-4 py-3 font-mono text-xs text-slate-400">
-              {% if d.merkle_leaf %}{{ d.merkle_leaf.leaf_index }}{% endif %}
-            </td>
             <td class="px-4 py-3">
               <p class="font-semibold text-slate-800">{{ d.prenom }} {{ d.nom }}</p>
               <p class="text-xs text-slate-400 font-mono">{{ d.numero_etudiant }}</p>
@@ -124,7 +115,7 @@
           </tr>
           {% empty %}
           <tr>
-            <td colspan="7" class="px-4 py-10 text-center text-slate-400">
+            <td colspan="6" class="px-4 py-10 text-center text-slate-400">
               Aucun diplôme soumis au registre national.
             </td>
           </tr>
@@ -137,15 +128,15 @@
   <!-- Explication rapide -->
   <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
     <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-      <p class="text-xs font-bold text-rep-700 uppercase tracking-wide mb-2">1 — Cérémonie nationale</p>
+      <p class="text-xs font-bold text-rep-700 uppercase tracking-wide mb-2">1. Cérémonie nationale</p>
       <p class="text-xs text-slate-500">Chaque année, les universités soumettent leurs diplômés. Un arbre Merkle unique est construit et la racine est co-signée par toutes les parties.</p>
     </div>
     <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-      <p class="text-xs font-bold text-rep-700 uppercase tracking-wide mb-2">2 — Preuve embarquée</p>
-      <p class="text-xs text-slate-500">Chaque diplôme est distribué avec sa preuve Merkle intégrée. Aucun serveur n'est nécessaire pour la vérifier — elle se suffit à elle-même.</p>
+      <p class="text-xs font-bold text-rep-700 uppercase tracking-wide mb-2">2. Preuve embarquée</p>
+      <p class="text-xs text-slate-500">Chaque diplôme est distribué avec sa preuve Merkle intégrée. Aucun serveur n'est nécessaire pour la vérifier. Elle se suffit à elle-même.</p>
     </div>
     <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-      <p class="text-xs font-bold text-rep-700 uppercase tracking-wide mb-2">3 — Vérification locale</p>
+      <p class="text-xs font-bold text-rep-700 uppercase tracking-wide mb-2">3. Vérification locale</p>
       <p class="text-xs text-slate-500">L'employeur calcule lui-même la preuve dans son navigateur et compare avec la racine publiée au Journal Officiel. Résultat en moins d'une seconde.</p>
     </div>
   </div>

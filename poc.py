@@ -103,7 +103,7 @@ class Diplome:
         return sha256(self.serialize())
 
     def __str__(self):
-        return f"{self.prenom} {self.nom} — {self.intitule} ({self.date_obtention[:4]})"
+        return f"{self.prenom} {self.nom}, {self.intitule} ({self.date_obtention[:4]})"
 
 
 # ---------------------------------------------------------------------------
@@ -127,10 +127,10 @@ def info(texte):
 
 
 # ---------------------------------------------------------------------------
-# SCENARIO 1 — Enregistrement et construction de l'arbre
+# SCENARIO 1 : Enregistrement et construction de l'arbre
 # ---------------------------------------------------------------------------
 
-titre("SCENARIO 1 — Enregistrement des diplomes")
+titre("SCENARIO 1 : Enregistrement des diplomes")
 
 diplomes = [
     Diplome("ETU-2024-001", "Dupont",  "Marie",   "Master Informatique",  "Cybersecurite",             "Universite Paris-Saclay",  "Faculte des Sciences", "2024-07-02", "tres_bien"),
@@ -154,10 +154,10 @@ print(f"  Racine Merkle   : {root}")
 
 
 # ---------------------------------------------------------------------------
-# SCENARIO 2 — Verification d'un diplome legitime
+# SCENARIO 2 : Verification d'un diplome legitime
 # ---------------------------------------------------------------------------
 
-titre("SCENARIO 2 — Verification d'un diplome legitime")
+titre("SCENARIO 2 : Verification d'un diplome legitime")
 
 cible       = diplomes[2]   # Sophie Lefevre
 cible_index = 2
@@ -173,16 +173,16 @@ for i, step in enumerate(proof):
 
 print()
 if valide:
-    ok("Preuve VALIDE — le diplome est authentique et non modifie.")
+    ok("Preuve VALIDE : le diplome est authentique et non modifie.")
 else:
     err("Preuve INVALIDE.")
 
 
 # ---------------------------------------------------------------------------
-# SCENARIO 3 — Detection d'une falsification
+# SCENARIO 3 : Detection d'une falsification
 # ---------------------------------------------------------------------------
 
-titre("SCENARIO 3 — Falsification et detection")
+titre("SCENARIO 3 : Falsification et detection")
 
 info(f"Diplome original : mention='{cible.mention}'")
 info("Falsification    : on change la mention en 'felicitations' sans recomputer l'arbre...")
@@ -197,16 +197,16 @@ valide_falsif  = verify_proof(hash_falsifie, proof, root)
 info(f"Hash falsifie    : {hash_falsifie[:16]}...")
 print()
 if not valide_falsif:
-    ok("Falsification DETECTEE — la preuve Merkle est invalide pour le diplome modifie.")
+    ok("Falsification DETECTEE : la preuve Merkle est invalide pour le diplome modifie.")
 else:
     err("Falsification non detectee (anomalie).")
 
 
 # ---------------------------------------------------------------------------
-# SCENARIO 4 — Ajout d'un nouveau diplome
+# SCENARIO 4 : Ajout d'un nouveau diplome
 # ---------------------------------------------------------------------------
 
-titre("SCENARIO 4 — Ajout d'un nouveau diplome et mise a jour de la racine")
+titre("SCENARIO 4 : Ajout d'un nouveau diplome et mise a jour de la racine")
 
 ancien_root = root
 
@@ -225,7 +225,7 @@ info(f"Ancienne racine  : {ancien_root[:16]}...")
 info(f"Nouvelle racine  : {root_v2[:16]}...")
 print()
 if root_v2 != ancien_root:
-    ok("Racine mise a jour — l'ajout est bien reflete dans l'arbre.")
+    ok("Racine mise a jour : l'ajout est bien reflete dans l'arbre.")
 
 # Verification que l'ancien diplome est toujours valide avec la nouvelle racine
 proof_v2 = generate_proof(tree_v2, cible_index)
@@ -234,6 +234,6 @@ if valide_v2:
     ok(f"Le diplome de {cible.prenom} {cible.nom} reste valide dans le nouvel arbre.")
 
 print(f"\n{SEP}")
-print(f"  FIN DU POC — {len(diplomes)} diplomes enregistres")
+print(f"  FIN DU POC : {len(diplomes)} diplomes enregistres")
 print(f"  Racine finale : {root_v2}")
 print(SEP)

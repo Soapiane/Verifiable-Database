@@ -56,7 +56,7 @@ RootHistory.objects.create(root_hash=global_root, tree_size=len(DIPLOMES))
 for annee in [2022, 2023, 2024]:
     root = merkle.compute_and_store_annual_root(annee)
     count = Diplome.objects.filter(date_obtention__year=annee).count()
-    print(f"Promotion {annee} : {count} diplomes — root={root[:16]}...")
+    print(f"Promotion {annee} : {count} diplomes, root={root[:16]}...")
 
 print(f"\nDONE: {len(DIPLOMES)} diplomes sur 3 promotions")
 print(f"Root global : {global_root}")

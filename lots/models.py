@@ -24,7 +24,7 @@ class Diplome(models.Model):
     created_at       = models.DateTimeField(auto_now_add=True)
 
     def serialize(self):
-        """Format canonique partagé avec merkle.js — NE PAS MODIFIER sans mettre à jour le JS."""
+        """Format canonique partagé avec merkle.js. NE PAS MODIFIER sans mettre à jour le JS."""
         return '|'.join([
             str(self.id),
             self.numero_etudiant,
@@ -45,7 +45,7 @@ class Diplome(models.Model):
         return dict(MENTIONS).get(self.mention, self.mention)
 
     def __str__(self):
-        return f"{self.prenom} {self.nom} — {self.intitule}"
+        return f"{self.prenom} {self.nom}, {self.intitule}"
 
     class Meta:
         ordering = ['-date_obtention']
@@ -73,7 +73,7 @@ class RootHistory(models.Model):
 
 
 class AnnualRoot(models.Model):
-    """Racine Merkle officielle publiée chaque année — une entrée par promotion."""
+    """Racine Merkle officielle publiée chaque année. Une entrée par promotion."""
     annee          = models.IntegerField(unique=True)
     root_hash      = models.CharField(max_length=64)
     diploma_count  = models.IntegerField()
@@ -83,4 +83,4 @@ class AnnualRoot(models.Model):
         ordering = ['-annee']
 
     def __str__(self):
-        return f"Promotion {self.annee} — Root {self.root_hash[:12]}..."
+        return f"Promotion {self.annee} · root {self.root_hash[:12]}..."

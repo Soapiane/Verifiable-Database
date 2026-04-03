@@ -4,33 +4,38 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST, require_GET
 from django.views.decorators.csrf import csrf_exempt
 
-from .models import Diplome, MerkleLeaf, RootHistory, AnnualRoot
+from .models import Diplome, RootHistory, AnnualRoot
 from . import merkle
 
 
 def dashboard(request):
     from django.db.models import Count
-    diplomes    = Diplome.objects.select_related('merkle_leaf').all()
-    root        = RootHistory.objects.first()
-    universites = (Diplome.objects
-                   .values('universite')
-                   .annotate(nb=Count('id'))
-                   .order_by('universite'))
+    diplomes     = Diplome.objects.all()
+    annual_roots = AnnualRoot.objects.all()
+    universites  = (Diplome.objects
+                    .values('universite')
+                    .annotate(nb=Count('id'))
+                    .order_by('universite'))
     return render(request, 'lots/dashboard.html', {
-        'diplomes':    diplomes,
-        'root':        root,
-        'universites': universites,
+        'diplomes':     diplomes,
+        'annual_roots': annual_roots,
+        'universites':  universites,
     })
 
 
 def diplome_detail(request, diplome_id):
     diplome = get_object_or_404(Diplome, id=diplome_id)
+    annee   = diplome.date_obtention.year
 
-    tree, leaves = merkle.rebuild_tree_from_db()
-    root         = merkle.get_root(tree)
-    leaf         = get_object_or_404(MerkleLeaf, diplome=diplome)
-    proof_steps  = merkle.generate_proof(tree, leaf.leaf_index)
-    tree_json    = merkle.tree_to_json(tree, proof_leaf_index=leaf.leaf_index)
+    # Arbre uniquement pour la promotion de ce diplôme
+    tree, diplomes_annee, _ = merkle.build_annual_tree(annee)
+    annual_leaf_index = next(i for i, d in enumerate(diplomes_annee) if d.id == diplome.id)
+    leaf_hash   = diplome.compute_hash()
+    proof_steps = merkle.generate_proof(tree, annual_leaf_index)
+    tree_json   = merkle.tree_to_json(tree, proof_leaf_index=annual_leaf_index)
+
+    annual_root = AnnualRoot.objects.filter(annee=annee).first()
+    root_hash   = annual_root.root_hash if annual_root else merkle.get_root(tree)
 
     diplome_data = {
         'id':             diplome.id,
@@ -46,10 +51,11 @@ def diplome_detail(request, diplome_id):
     }
 
     proof_data = {
-        'leafHash':  leaf.leaf_hash,
-        'leafIndex': leaf.leaf_index,
-        'treeSize':  len(leaves),
-        'root':      root,
+        'leafHash':  leaf_hash,
+        'leafIndex': annual_leaf_index,
+        'treeSize':  len(diplomes_annee),
+        'root':      root_hash,
+        'annee':     annee,
         'path': [
             {'siblingHash': s['sibling_hash'], 'direction': s['direction']}
             for s in proof_steps
@@ -57,12 +63,14 @@ def diplome_detail(request, diplome_id):
     }
 
     return render(request, 'lots/diplome_detail.html', {
-        'diplome':      diplome,
-        'root':         root,
-        'root_history': RootHistory.objects.all()[:5],
-        'diplome_json': json.dumps(diplome_data),
-        'proof_json':   json.dumps(proof_data),
-        'tree_json':    json.dumps(tree_json),
+        'diplome':            diplome,
+        'root':               root_hash,
+        'annee':              annee,
+        'annual_leaf_index':  annual_leaf_index,
+        'leaf_hash':          leaf_hash,
+        'diplome_json':       json.dumps(diplome_data),
+        'proof_json':         json.dumps(proof_data),
+        'tree_json':          json.dumps(tree_json),
     })
 
 
@@ -85,20 +93,11 @@ def create_diplome(request):
 
     diplome = Diplome.objects.create(**{k: data[k] for k in required})
 
-    leaf_index = MerkleLeaf.objects.count()
-    leaf_hash  = diplome.compute_hash()
-    MerkleLeaf.objects.create(diplome=diplome, leaf_index=leaf_index, leaf_hash=leaf_hash)
+    # Racine annuelle uniquement. Les preuves sont valides pour toujours.
+    annee       = diplome.date_obtention.year
+    annual_root = merkle.compute_and_store_annual_root(annee)
 
-    # Racine globale (pour la vérification individuelle)
-    tree, _ = merkle.rebuild_tree_from_db()
-    root     = merkle.get_root(tree)
-    RootHistory.objects.create(root_hash=root, tree_size=leaf_index + 1)
-
-    # Racine annuelle (pour les archives)
-    annee = diplome.date_obtention.year
-    merkle.compute_and_store_annual_root(annee)
-
-    return JsonResponse({'id': diplome.id, 'root': root}, status=201)
+    return JsonResponse({'id': diplome.id, 'root': annual_root}, status=201)
 
 
 @csrf_exempt
@@ -118,7 +117,7 @@ def tamper_diplome(request, diplome_id):
 
     Diplome.objects.filter(id=diplome_id).update(**updates)
     return JsonResponse({
-        'warning': 'Diplôme modifié HORS Merkle tree — la preuve est désormais invalide.',
+        'warning': 'Diplôme modifié HORS Merkle tree. La preuve est désormais invalide.',
         'changes': updates,
     })
 
@@ -185,7 +184,7 @@ def export_roots(request):
     """Téléchargement JSON de toutes les racines annuelles."""
     annual_roots = AnnualRoot.objects.all()
     data = {
-        'registry':    'DiploVerif — Registre National des Diplômes',
+        'registry':    'DiploVerif, Registre National des Diplômes',
         'description': 'Racines Merkle annuelles certifiées. Chaque racine engage l\'ensemble des diplômes de la promotion correspondante.',
         'algorithm':   'SHA-256 Merkle Tree',
         'roots': [
