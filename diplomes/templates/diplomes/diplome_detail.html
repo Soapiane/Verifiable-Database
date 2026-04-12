@@ -1,4 +1,4 @@
-{% extends "lots/base.html" %}
+{% extends "diplomes/base.html" %}
 {% load static %}
 {% block title %}{{ diplome.prenom }} {{ diplome.nom }} | Registre National{% endblock %}
 
@@ -48,8 +48,8 @@
 
           <div class="text-center border-t border-b border-slate-100 py-4 space-y-1">
             <p class="text-xs text-slate-400 uppercase tracking-[0.2em]">a obtenu le grade de</p>
-            <p class="text-xl font-bold text-slate-800">{{ diplome.intitule }}</p>
-            <p class="text-sm text-rep-600 font-medium">{{ diplome.specialite }}</p>
+            <p class="text-xl font-bold text-slate-800" id="display-intitule">{{ diplome.intitule }}</p>
+            <p class="text-sm text-rep-600 font-medium" id="display-specialite">{{ diplome.specialite }}</p>
           </div>
 
           <div class="grid grid-cols-2 gap-4 text-sm">
@@ -59,7 +59,7 @@
             </div>
             <div>
               <p class="text-xs text-slate-400 font-medium uppercase tracking-wide">Mention</p>
-              <div class="mt-0.5">
+              <div class="mt-0.5" id="display-mention">
                 {% if diplome.mention == 'tres_bien' or diplome.mention == 'felicitations' %}
                   <span class="bg-yellow-100 text-yellow-800 text-sm px-3 py-0.5 rounded-full font-semibold">{{ diplome.get_mention_display }}</span>
                 {% elif diplome.mention == 'bien' %}
@@ -223,10 +223,28 @@
   document.getElementById('tamper-intitule').value   = DIPLOME.intitule;
   document.getElementById('tamper-specialite').value = DIPLOME.specialite;
 
+  const MENTION_LABELS = {
+    'passable': 'Passable', 'assez_bien': 'Assez Bien', 'bien': 'Bien',
+    'tres_bien': 'Très Bien', 'felicitations': 'Félicitations du jury',
+  };
+
   function applyTamper() {
     DIPLOME.mention    = document.getElementById('tamper-mention').value;
     DIPLOME.intitule   = document.getElementById('tamper-intitule').value;
     DIPLOME.specialite = document.getElementById('tamper-specialite').value;
+
+    // Mettre à jour l'affichage du diplôme
+    document.getElementById('display-intitule').textContent   = DIPLOME.intitule;
+    document.getElementById('display-specialite').textContent = DIPLOME.specialite;
+
+    const mentionEl = document.getElementById('display-mention');
+    const label = MENTION_LABELS[DIPLOME.mention] || DIPLOME.mention;
+    const high  = ['tres_bien', 'felicitations'].includes(DIPLOME.mention);
+    const mid   = DIPLOME.mention === 'bien';
+    mentionEl.innerHTML = `<span class="${
+      high ? 'bg-yellow-100 text-yellow-800' : mid ? 'bg-rep-100 text-rep-700' : 'bg-slate-100 text-slate-600'
+    } text-sm px-3 py-0.5 rounded-full font-semibold">${label}</span>`;
+
     const el = document.getElementById('tamper-result');
     el.classList.remove('hidden');
     el.textContent = 'Valeurs falsifiées localement (aucun appel serveur). Relancez la vérification, la détection est immédiate.';

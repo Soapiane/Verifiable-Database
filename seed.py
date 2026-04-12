@@ -1,9 +1,9 @@
 import os, django
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'pharmleder.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'diploverif.settings')
 django.setup()
 
-from lots.models import Diplome, MerkleLeaf, RootHistory, AnnualRoot
-from lots import merkle
+from diplomes.models import Diplome, MerkleLeaf, RootHistory, AnnualRoot
+from diplomes import merkle
 
 DIPLOMES = [
     # ── Promotion 2022 ────────────────────────────────────────────────────────

@@ -13,6 +13,8 @@ Format canonique d'une feuille :
 
 import hashlib
 
+from .models import AnnualRoot, Diplome, MerkleLeaf
+
 
 EMPTY_HASH = hashlib.sha256(b'EMPTY').hexdigest()
 
@@ -80,7 +82,6 @@ def verify_proof(leaf_hash: str, proof: list[dict], root: str) -> bool:
 
 
 def rebuild_tree_from_db():
-    from .models import MerkleLeaf
     leaves = list(MerkleLeaf.objects.order_by('leaf_index').select_related('diplome'))
     hashes = [leaf.leaf_hash for leaf in leaves]
     tree   = build_tree(hashes)
@@ -92,7 +93,6 @@ def build_annual_tree(annee: int):
     Construit l'arbre Merkle pour une année donnée (basé sur date_obtention).
     Retourne (tree, diplomes_list, leaf_hashes).
     """
-    from .models import Diplome
     diplomes = list(
         Diplome.objects.filter(date_obtention__year=annee)
                        .order_by('id')
@@ -107,7 +107,6 @@ def compute_and_store_annual_root(annee: int):
     (Re)calcule la racine annuelle pour une année et la persiste dans AnnualRoot.
     Appelé après chaque nouvel ajout de diplôme.
     """
-    from .models import AnnualRoot
     tree, diplomes, _ = build_annual_tree(annee)
     root = get_root(tree)
     AnnualRoot.objects.update_or_create(

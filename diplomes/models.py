@@ -41,13 +41,26 @@ class Diplome(models.Model):
     def compute_hash(self):
         return hashlib.sha256(self.serialize().encode('utf-8')).hexdigest()
 
-    def get_mention_display_fr(self):
-        return dict(MENTIONS).get(self.mention, self.mention)
+    def to_api_dict(self):
+        """Représentation JSON-friendly (camelCase) pour les templates et l'API."""
+        return {
+            'id':             self.id,
+            'numeroEtudiant': self.numero_etudiant,
+            'nom':            self.nom,
+            'prenom':         self.prenom,
+            'intitule':       self.intitule,
+            'specialite':     self.specialite,
+            'universite':     self.universite,
+            'faculte':        self.faculte,
+            'dateObtention':  str(self.date_obtention),
+            'mention':        self.mention,
+        }
 
     def __str__(self):
         return f"{self.prenom} {self.nom}, {self.intitule}"
 
     class Meta:
+        db_table = 'lots_diplome'
         ordering = ['-date_obtention']
 
 
@@ -55,6 +68,9 @@ class MerkleLeaf(models.Model):
     diplome    = models.OneToOneField(Diplome, on_delete=models.CASCADE, related_name='merkle_leaf')
     leaf_index = models.IntegerField(unique=True)
     leaf_hash  = models.CharField(max_length=64)
+
+    class Meta:
+        db_table = 'lots_merkleleaf'
 
     def __str__(self):
         return f"Leaf[{self.leaf_index}] → {self.diplome}"
@@ -66,6 +82,7 @@ class RootHistory(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        db_table = 'lots_roothistory'
         ordering = ['-created_at']
 
     def __str__(self):
@@ -80,6 +97,7 @@ class AnnualRoot(models.Model):
     published_at   = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        db_table = 'lots_annualroot'
         ordering = ['-annee']
 
     def __str__(self):

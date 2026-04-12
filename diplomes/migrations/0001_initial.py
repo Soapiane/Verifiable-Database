@@ -22,6 +22,7 @@ class Migration(migrations.Migration):
                 ('published_at', models.DateTimeField(auto_now_add=True)),
             ],
             options={
+                'db_table': 'lots_annualroot',
                 'ordering': ['-annee'],
             },
         ),
@@ -41,6 +42,7 @@ class Migration(migrations.Migration):
                 ('created_at', models.DateTimeField(auto_now_add=True)),
             ],
             options={
+                'db_table': 'lots_diplome',
                 'ordering': ['-date_obtention'],
             },
         ),
@@ -53,6 +55,7 @@ class Migration(migrations.Migration):
                 ('created_at', models.DateTimeField(auto_now_add=True)),
             ],
             options={
+                'db_table': 'lots_roothistory',
                 'ordering': ['-created_at'],
             },
         ),
@@ -62,7 +65,10 @@ class Migration(migrations.Migration):
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('leaf_index', models.IntegerField(unique=True)),
                 ('leaf_hash', models.CharField(max_length=64)),
-                ('diplome', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='merkle_leaf', to='lots.diplome')),
+                ('diplome', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='merkle_leaf', to='diplomes.diplome')),
             ],
+            options={
+                'db_table': 'lots_merkleleaf',
+            },
         ),
     ]

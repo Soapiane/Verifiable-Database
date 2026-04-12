@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class LotsConfig(AppConfig):
+class DiplomesConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'lots'
+    name = 'diplomes'
